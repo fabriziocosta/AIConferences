@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Conference Globe</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <span class="brand-orb" aria-hidden="true"></span>
+        <div>
+          <h1>AI Conference Globe 2026-2027</h1>
+          <p>Explore top AI/ML conferences, deadlines, and locations around the world.</p>
+        </div>
+      </header>
+
+      <aside class="timeline-panel" aria-label="Conference timeline">
+        <div class="timeline-header">
+          <div>
+            <p class="eyebrow">Timeline</p>
+            <h2>Deadlines and venues</h2>
+          </div>
+          <div class="controls" aria-label="Timeline filters">
+            <button class="control-button is-active" type="button" data-filter="all">All</button>
+            <button class="control-button" type="button" data-filter="deadline">Deadlines</button>
+            <button class="control-button" type="button" data-filter="conference">Conferences</button>
+          </div>
+        </div>
+        <div id="timeline" class="timeline"></div>
+      </aside>
+
+      <section class="globe-stage" aria-label="Interactive conference globe">
+        <div id="globe" class="globe"></div>
+      </section>
+
+      <article id="selection-card" class="selection-card" aria-live="polite"></article>
+
+      <div id="status" class="status" role="status">Loading conference data...</div>
+    </main>
+
+    <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

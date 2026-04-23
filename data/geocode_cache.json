@@ -1,0 +1,26 @@
+{
+  "austin, texas, usa": {
+    "city": "Austin",
+    "country": "United States",
+    "latitude": 30.2711286,
+    "longitude": -97.7436995
+  },
+  "delft, the netherlands": {
+    "city": "Delft",
+    "country": "Nederland",
+    "latitude": 51.9994572,
+    "longitude": 4.3627245
+  },
+  "hong kong, china": {
+    "city": "",
+    "country": "\u4e2d\u56fd",
+    "latitude": 22.3492155,
+    "longitude": 114.1857978
+  },
+  "shenyang, china": {
+    "city": "\u6c88\u9633\u5e02",
+    "country": "\u4e2d\u56fd",
+    "latitude": 41.8026095,
+    "longitude": 123.4279105
+  }
+}
