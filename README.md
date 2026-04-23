@@ -19,14 +19,15 @@ Open `http://localhost:8000/`.
 ## Rebuild the dataset
 
 ```bash
-jupyter nbconvert --to notebook --execute --inplace notebooks/build_conference_dataset.ipynb
+python3 scripts/build_conference_dataset.py --current-year 2026
 ```
 
-The notebook fetches structured CCF Deadlines YAML, filters top academic AI/ML and adjacent venues, geocodes venues with a local cache plus Nominatim fallback, adds direct Wikimedia location image URLs, and writes `data/conferences.csv`.
+The script fetches structured CCF Deadlines YAML, filters top academic AI/ML and adjacent venues, geocodes venues with a local cache plus Nominatim fallback, adds direct Wikimedia location image URLs, and writes `data/conferences.csv`.
 
 ## Files
 
 - `index.html`, `styles.css`, `app.js`: static browser app.
-- `notebooks/build_conference_dataset.ipynb`: data collection and CSV build notebook.
+- `scripts/build_conference_dataset.py`: scriptable data collection and CSV build pipeline.
+- `notebooks/build_conference_dataset.ipynb`: exploratory notebook version of the data build.
 - `data/conferences.csv`: visualization dataset.
 - `data/geocode_cache.json`: cached fallback geocoder responses.

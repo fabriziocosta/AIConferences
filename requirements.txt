@@ -2,3 +2,4 @@ pandas
 PyYAML
 requests
 nbformat
+python-dateutil
