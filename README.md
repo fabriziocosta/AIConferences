@@ -22,7 +22,7 @@ Open `http://localhost:8000/`.
 jupyter nbconvert --to notebook --execute --inplace notebooks/build_conference_dataset.ipynb
 ```
 
-The notebook fetches structured CCF Deadlines YAML, filters top academic AI/ML and adjacent venues, geocodes venues with a local cache plus Nominatim fallback, adds deterministic location image URLs, and writes `data/conferences.csv`.
+The notebook fetches structured CCF Deadlines YAML, filters top academic AI/ML and adjacent venues, geocodes venues with a local cache plus Nominatim fallback, adds direct Wikimedia location image URLs, and writes `data/conferences.csv`.
 
 ## Files
 
