@@ -4,7 +4,7 @@ Interactive static visualization for 2026 and 2027 AI/ML conference locations, d
 
 ## Live demo
 
-Once this repository is published to `fabriziocosta/AIConferences`, the GitHub Pages deployment will be available at:
+The GitHub Pages deployment is available at:
 
 https://fabriziocosta.github.io/AIConferences/
 
