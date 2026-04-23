@@ -11,10 +11,11 @@
   <body>
     <main class="app-shell">
       <header class="page-header">
-        <span class="brand-orb" aria-hidden="true"></span>
+        <span class="brand-mark" aria-hidden="true">AI</span>
         <div>
           <h1>AI Conference Globe 2026-2027</h1>
           <p>Explore top AI/ML conferences, deadlines, and locations around the world.</p>
+          <dl id="header-stats" class="header-stats" aria-label="Conference summary"></dl>
         </div>
       </header>
 
@@ -29,6 +30,10 @@
             <button class="control-button" type="button" data-filter="deadline">Deadlines</button>
             <button class="control-button" type="button" data-filter="conference">Conferences</button>
           </div>
+          <label class="search-field">
+            <span>Search</span>
+            <input id="search-input" type="search" placeholder="Conference, city, field..." autocomplete="off" />
+          </label>
         </div>
         <div id="timeline" class="timeline"></div>
       </aside>

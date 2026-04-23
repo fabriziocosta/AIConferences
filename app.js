@@ -4,6 +4,7 @@ const state = {
   conferences: [],
   events: [],
   filter: "all",
+  query: "",
   activeId: null,
   globe: null,
 };
@@ -13,6 +14,8 @@ const timelineElement = document.querySelector("#timeline");
 const statusElement = document.querySelector("#status");
 const selectionCardElement = document.querySelector("#selection-card");
 const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+const searchInput = document.querySelector("#search-input");
+const headerStatsElement = document.querySelector("#header-stats");
 
 const monthFormatter = new Intl.DateTimeFormat("en", {
   month: "long",
@@ -43,12 +46,21 @@ function importanceRadius(row) {
 
 function markerColor(row) {
   if (row.id === state.activeId) {
-    return "rgba(255, 126, 24, 1)";
+    return "rgba(239, 107, 69, 1)";
   }
-  const date = markerColorDate(row);
-  const month = date ? date.getUTCMonth() : 5;
-  const lightness = 72 - month * 2.8;
-  return `hsl(204, 96%, ${lightness}%)`;
+  if (state.filter === "deadline") return "rgba(239, 107, 69, 0.92)";
+  if (state.filter === "conference") return "rgba(8, 168, 138, 0.92)";
+
+  const fieldColors = {
+    AI: "rgba(36, 107, 254, 0.92)",
+    CV: "rgba(8, 168, 138, 0.92)",
+    NLP: "rgba(244, 165, 28, 0.92)",
+    DB: "rgba(239, 107, 69, 0.92)",
+    DM: "rgba(129, 96, 230, 0.92)",
+    IR: "rgba(48, 136, 168, 0.92)",
+    RO: "rgba(213, 84, 122, 0.92)",
+  };
+  return fieldColors[row.subfield] || "rgba(82, 98, 122, 0.78)";
 }
 
 function markerColorDate(row) {
@@ -118,6 +130,34 @@ function setStatus(message, isHidden = false) {
   statusElement.classList.toggle("is-hidden", isHidden);
 }
 
+function renderHeaderStats(rows) {
+  const countries = new Set(rows.map((row) => row.country).filter(Boolean));
+  const ranked = rows.filter((row) => row.rank === "A").length;
+  const now = new Date();
+  const nextDeadline = rows
+    .filter((row) => row.deadlineDate && row.deadlineDate >= now)
+    .sort((a, b) => a.deadlineDate - b.deadlineDate)[0];
+
+  headerStatsElement.innerHTML = `
+    <div>
+      <dt>Conferences</dt>
+      <dd>${rows.length}</dd>
+    </div>
+    <div>
+      <dt>Countries</dt>
+      <dd>${countries.size}</dd>
+    </div>
+    <div>
+      <dt>A-ranked</dt>
+      <dd>${ranked}</dd>
+    </div>
+    <div>
+      <dt>Next deadline</dt>
+      <dd>${nextDeadline ? `${nextDeadline.title} · ${formatDate(nextDeadline.deadlineDate)}` : "TBD"}</dd>
+    </div>
+  `;
+}
+
 function focusConference(row) {
   if (!row) return;
   state.activeId = row.id;
@@ -153,6 +193,7 @@ function renderSelection(row) {
     ? `${formatDate(row.eventStartDate)}${row.eventEndDate && row.eventEndDate.getTime() !== row.eventStartDate.getTime() ? ` - ${formatDate(row.eventEndDate)}` : ""}`
     : row.date_text || "Date TBD";
   const deadline = row.deadlineDate ? formatDate(row.deadlineDate) : row.deadline_status === "TBD" ? "TBD" : "Not listed";
+  const rank = row.rank && row.rank !== "N" ? `${row.rank}-ranked` : "Not ranked";
 
   selectionCardElement.innerHTML = `
     <div class="selection-art" aria-hidden="true"${imageStyle}></div>
@@ -161,11 +202,13 @@ function renderSelection(row) {
         <h3>${row.title} ${row.year}</h3>
         <span class="pill">${row.subfield || "AI/ML"}</span>
       </div>
+      <p class="selection-full-name">${row.full_name || "Conference details"}</p>
       <div class="selection-meta">
         <span>${eventRange}</span>
         <span>${row.place || "Location TBD"}</span>
+        <span>${rank} · ${row.country || "Country TBD"}</span>
         <span>Deadline: ${deadline}</span>
-        ${row.link ? `<span class="url-row">Conference URL: <a href="${row.link}" target="_blank" rel="noreferrer">${row.link}</a></span>` : ""}
+        ${row.link ? `<span class="url-row"><a class="conference-link" href="${row.link}" target="_blank" rel="noreferrer">Open conference site</a></span>` : ""}
       </div>
       <div class="score-row">
         <span>Importance Score</span>
@@ -228,8 +271,16 @@ function resizeGlobe() {
 }
 
 function filteredEvents() {
-  if (state.filter === "all") return state.events;
-  return state.events.filter((event) => event.type === state.filter);
+  const query = state.query.trim().toLowerCase();
+  return state.events.filter((event) => {
+    if (state.filter !== "all" && event.type !== state.filter) return false;
+    if (!query) return true;
+
+    const row = event.conference;
+    return [row.title, row.full_name, row.place, row.city, row.country, row.subfield, row.rank]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(query));
+  });
 }
 
 function renderTimeline() {
@@ -237,7 +288,7 @@ function renderTimeline() {
   timelineElement.innerHTML = "";
 
   if (!events.length) {
-    timelineElement.innerHTML = `<div class="empty-state">No timeline entries match this filter.</div>`;
+    timelineElement.innerHTML = `<div class="empty-state">No timeline entries match the current view.</div>`;
     return;
   }
 
@@ -270,7 +321,7 @@ function renderTimeline() {
           <strong>${row.title}</strong>
           <span>${row.year}</span>
         </span>
-        <span class="event-place">${row.place || "Location TBD"}</span>
+        <span class="event-place">${row.place || "Location TBD"} · ${row.subfield || "AI/ML"} · ${row.rank || "N"}</span>
         ${event.actualDate && event.actualDate !== event.displayDate ? `<span class="event-place">Actual deadline: ${event.actualDate}</span>` : ""}
         <span class="event-importance" aria-hidden="true">
           <span style="width: ${Math.max(10, row.importance * 10)}%"></span>
@@ -292,6 +343,11 @@ function setupFilters() {
       refreshGlobeMarkers();
       renderTimeline();
     });
+  });
+
+  searchInput.addEventListener("input", () => {
+    state.query = searchInput.value;
+    renderTimeline();
   });
 }
 
@@ -351,6 +407,7 @@ async function init() {
     const rows = await loadData();
     state.conferences = rows;
     state.events = buildEvents(rows);
+    renderHeaderStats(rows);
     const initialSelection = rows.find((row) => row.title === "NeurIPS") || rows[0];
     if (initialSelection) {
       state.activeId = initialSelection.id;
