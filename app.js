@@ -52,7 +52,7 @@ function markerColor(row) {
   if (state.filter === "conference") return "rgba(8, 168, 138, 0.92)";
 
   const fieldColors = {
-    AI: "rgba(36, 107, 254, 0.92)",
+    AI: "rgba(18, 63, 140, 0.92)",
     CV: "rgba(8, 168, 138, 0.92)",
     NLP: "rgba(244, 165, 28, 0.92)",
     DB: "rgba(239, 107, 69, 0.92)",
