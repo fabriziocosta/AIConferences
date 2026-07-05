@@ -1,15 +1,39 @@
 {
+  "athens, greece": {
+    "city": "\u0391\u03b8\u03ae\u03bd\u03b1",
+    "country": "\u0395\u03bb\u03bb\u03ac\u03c2",
+    "latitude": 37.9755648,
+    "longitude": 23.7348324
+  },
   "austin, texas, usa": {
     "city": "Austin",
     "country": "United States",
     "latitude": 30.2711286,
     "longitude": -97.7436995
   },
+  "cordis, hong kong sar, china": {
+    "city": "\u9999\u6e2f Hong Kong",
+    "country": "\u4e2d\u56fd",
+    "latitude": 22.318083,
+    "longitude": 114.1681272
+  },
   "delft, the netherlands": {
     "city": "Delft",
     "country": "Nederland",
     "latitude": 51.9994572,
     "longitude": 4.3627245
+  },
+  "disney springs, buena vista, fl, usa": {
+    "city": "Florida",
+    "country": "United States",
+    "latitude": 28.3711613,
+    "longitude": -81.5183686
+  },
+  "hanoi, vietnam": {
+    "city": "Th\u00e0nh ph\u1ed1 H\u00e0 N\u1ed9i",
+    "country": "Vi\u1ec7t Nam",
+    "latitude": 21.0283334,
+    "longitude": 105.854041
   },
   "hong kong, china": {
     "city": "",
@@ -22,5 +46,11 @@
     "country": "\u4e2d\u56fd",
     "latitude": 41.8026095,
     "longitude": 123.4279105
+  },
+  "southampton, uk": {
+    "city": "Southampton",
+    "country": "United Kingdom",
+    "latitude": 50.9025349,
+    "longitude": -1.404189
   }
 }
