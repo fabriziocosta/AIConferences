@@ -1,6 +1,5 @@
 const DATA_URL = "data/conferences.csv";
 const COUNTRY_BOUNDARIES_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
-const ACTIVE_DEADLINE_FROM = Date.UTC(2026, 6, 26);
 
 const state = {
   conferences: [],
@@ -336,7 +335,9 @@ function matchesAdvancedFilters(row) {
 
 function hasActiveSubmission(row) {
   if (!row.deadlineDate) return false;
-  return row.deadlineDate.getTime() >= ACTIVE_DEADLINE_FROM;
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return row.deadlineDate.getTime() >= today;
 }
 
 function matchesVisibleFields(row) {
