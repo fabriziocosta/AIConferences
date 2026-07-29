@@ -12,6 +12,7 @@ const state = {
     deadlineStatus: "",
     month: "",
   },
+  hiddenFields: new Set(),
   activeId: null,
   globe: null,
 };
@@ -186,6 +187,10 @@ function matchesAdvancedFilters(row) {
   return true;
 }
 
+function matchesVisibleFields(row) {
+  return !row.subfield || !state.hiddenFields.has(row.subfield);
+}
+
 function normalizeRows(rows) {
   return rows.map((row) => ({
     ...row,
@@ -267,13 +272,16 @@ function renderFieldLegend(rows) {
 
   fieldLegendElement.innerHTML = orderedFields
     .map(
-      (field) => `
-        <span class="field-legend-item">
+      (field) => {
+        const isVisible = !state.hiddenFields.has(field);
+        return `
+        <button class="field-legend-item${isVisible ? "" : " is-off"}" type="button" data-field-toggle="${field}" aria-pressed="${isVisible}" aria-label="${isVisible ? "Hide" : "Show"} ${fieldLabels[field] || field} conferences">
           <span class="field-legend-swatch" style="background: ${conferenceFieldColor({ subfield: field })}" aria-hidden="true"></span>
           <strong>${field}</strong>
           <span>${fieldLabels[field] || field}</span>
-        </span>
-      `,
+        </button>
+      `;
+      },
     )
     .join("");
 }
@@ -300,7 +308,7 @@ function refreshGlobeMarkers() {
   if (!state.globe) return;
   state.globe
     .pointColor(markerColor)
-    .pointsData(state.conferences.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row)));
+    .pointsData(state.conferences.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row) && matchesVisibleFields(row)));
 }
 
 function renderSelection(row) {
@@ -408,6 +416,7 @@ function filteredEvents() {
     if (state.filter !== "all" && event.type !== state.filter) return false;
 
     const row = event.conference;
+    if (!matchesVisibleFields(row)) return false;
     if (!matchesAdvancedFilters(row)) return false;
     if (!query) return true;
 
@@ -577,6 +586,23 @@ function setupFilters() {
     fieldLegendToggleElement.setAttribute("aria-expanded", String(isOpen));
     fieldLegendToggleElement.querySelector("span").textContent = isOpen ? "Hide legend" : "Show legend";
     fieldLegendToggleElement.classList.toggle("is-active", isOpen);
+  });
+
+  fieldLegendElement.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-field-toggle]");
+    if (!toggle) return;
+
+    const field = toggle.dataset.fieldToggle;
+    if (state.hiddenFields.has(field)) {
+      state.hiddenFields.delete(field);
+    } else {
+      state.hiddenFields.add(field);
+    }
+
+    renderFieldLegend(state.conferences);
+    fieldLegendElement.querySelector(`[data-field-toggle="${field}"]`)?.focus();
+    refreshGlobeMarkers();
+    renderTimeline();
   });
 
   document.addEventListener("keydown", (event) => {

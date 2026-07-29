@@ -409,6 +409,29 @@ h2 {
   align-items: center;
   gap: 0.3rem;
   min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 0.22rem 0.25rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.field-legend-item:hover,
+.field-legend-item:focus-visible {
+  border-color: rgba(18, 63, 140, 0.24);
+  background: rgba(255, 255, 255, 0.56);
+  outline: none;
+}
+
+.field-legend-item.is-off {
+  opacity: 0.42;
 }
 
 .field-legend-item strong {
@@ -1059,46 +1082,63 @@ h2 {
   }
 
   .app-shell {
+    display: flex;
+    flex-direction: column;
     min-height: 100vh;
-    height: 100vh;
+    min-height: 100svh;
+    height: auto;
+    overflow: visible;
   }
 
-  .globe {
-    inset: 0;
+  .page-header {
+    position: relative;
+    inset: auto;
+    order: 1;
+    flex: 0 0 auto;
+    margin: var(--overlay-gap) var(--overlay-gap) 0;
+    padding: 0.8rem 0.95rem 0.75rem;
+    text-align: left;
+    justify-items: start;
   }
 
   .globe-stage {
-    inset: 0;
+    position: relative;
+    inset: auto;
+    order: 2;
+    flex: 0 0 min(52svh, 34rem);
+    width: 100%;
+    min-height: 22rem;
+    margin-top: 0.5rem;
+    overflow: hidden;
   }
 
   .globe-stage::before {
     display: none;
   }
 
-  .timeline-panel {
-    top: auto;
-    left: var(--overlay-gap);
-    right: var(--overlay-gap);
-    bottom: var(--overlay-gap);
-    width: auto;
-    height: min(38vh, 24rem);
-  }
-
-  .page-header {
-    top: var(--overlay-gap);
-    left: var(--overlay-gap);
-    right: var(--overlay-gap);
-    width: auto;
-    padding: 0.8rem 0.95rem 0.75rem;
-    text-align: left;
-    justify-items: start;
+  .globe {
+    inset: 0;
   }
 
   .selection-card {
-    left: var(--overlay-gap);
-    right: var(--overlay-gap);
-    bottom: calc(min(38vh, 24rem) + (var(--overlay-gap) * 2));
+    position: relative;
+    inset: auto;
+    order: 3;
+    flex: 0 0 auto;
     width: auto;
+    margin: -1.25rem var(--overlay-gap) var(--overlay-gap);
+    padding: 1rem;
+  }
+
+  .timeline-panel {
+    position: relative;
+    inset: auto;
+    order: 4;
+    flex: 0 0 min(60svh, 34rem);
+    width: auto;
+    height: min(60svh, 34rem);
+    min-height: 22rem;
+    margin: 0 var(--overlay-gap) var(--overlay-gap);
   }
 
   .legend {
@@ -1153,9 +1193,8 @@ h2 {
 
   .selection-card {
     grid-template-columns: 1fr;
-    bottom: calc(min(38vh, 24rem) + (var(--overlay-gap) * 1.75));
-    max-height: 13rem;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 
   .selection-art {
