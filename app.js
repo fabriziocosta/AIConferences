@@ -1,5 +1,6 @@
 const DATA_URL = "data/conferences.csv";
 const COUNTRY_BOUNDARIES_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
+const ACTIVE_DEADLINE_FROM = Date.UTC(2026, 6, 26);
 
 const state = {
   conferences: [],
@@ -335,9 +336,7 @@ function matchesAdvancedFilters(row) {
 
 function hasActiveSubmission(row) {
   if (!row.deadlineDate) return false;
-  const now = new Date();
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  return row.deadlineDate.getTime() >= today;
+  return row.deadlineDate.getTime() >= ACTIVE_DEADLINE_FROM;
 }
 
 function matchesVisibleFields(row) {
@@ -369,7 +368,7 @@ function buildEvents(rows) {
   rows.forEach((row) => {
     if (row.deadlineDate || row.deadline_status === "TBD") {
       const displayDeadlineDate = row.deadlineDate
-        ? new Date(Date.UTC(row.year, row.deadlineDate.getUTCMonth(), row.deadlineDate.getUTCDate()))
+        ? row.deadlineDate
         : new Date(`${row.year}-12-31T00:00:00Z`);
       events.push({
         id: `${row.id}-deadline`,
@@ -618,8 +617,10 @@ function resizeGlobe() {
 
 function filteredEvents() {
   const query = state.query.trim().toLowerCase();
+  const activeDeadlineView = state.advancedFilters.deadlineStatus === "active" && state.filter === "all";
   return state.events.filter((event) => {
     if (state.filter !== "all" && event.type !== state.filter) return false;
+    if (activeDeadlineView && event.type !== "deadline") return false;
 
     const row = event.conference;
     if (!matchesVisibleFields(row)) return false;
@@ -661,8 +662,9 @@ function renderMonthAxis(monthEvents) {
   `;
 }
 
-function renderTimeline() {
+function renderTimeline({ resetScroll = false } = {}) {
   const events = filteredEvents();
+  if (resetScroll) timelineElement.scrollTop = 0;
   timelineElement.innerHTML = "";
 
   if (!events.length) {
@@ -822,7 +824,7 @@ function clearAllFilters() {
 
   renderFieldLegend(state.conferences);
   refreshGlobeMarkers();
-  renderTimeline();
+  renderTimeline({ resetScroll: true });
 }
 
 function setupFilters() {
@@ -833,13 +835,13 @@ function setupFilters() {
         candidate.classList.toggle("is-active", candidate === button);
       });
       refreshGlobeMarkers();
-      renderTimeline();
+      renderTimeline({ resetScroll: true });
     });
   });
 
   searchInput.addEventListener("input", () => {
     state.query = searchInput.value;
-    renderTimeline();
+    renderTimeline({ resetScroll: true });
   });
 
   filterToggleElement.addEventListener("click", () => {
@@ -853,7 +855,7 @@ function setupFilters() {
     select.addEventListener("change", () => {
       state.advancedFilters[select.dataset.advancedFilter] = select.value;
       refreshGlobeMarkers();
-      renderTimeline();
+      renderTimeline({ resetScroll: true });
     });
   });
 
@@ -881,7 +883,7 @@ function setupFilters() {
     renderFieldLegend(state.conferences);
     fieldLegendElement.querySelector(`[data-field-toggle="${field}"]`)?.focus();
     refreshGlobeMarkers();
-    renderTimeline();
+    renderTimeline({ resetScroll: true });
   });
 
   selectionCardElement.addEventListener("click", (event) => {
