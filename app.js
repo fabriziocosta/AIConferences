@@ -28,6 +28,11 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
   year: "numeric",
 });
 
+const summaryDateFormatter = new Intl.DateTimeFormat("en", {
+  day: "numeric",
+  month: "short",
+});
+
 function parseDate(value) {
   if (!value || value.toUpperCase() === "TBD") return null;
   const dateOnly = value.includes(" ") ? value.split(" ")[0] : value;
@@ -37,6 +42,10 @@ function parseDate(value) {
 
 function formatDate(date, fallback = "TBD") {
   return date ? dateFormatter.format(date) : fallback;
+}
+
+function formatSummaryDate(date, fallback = "TBD") {
+  return date ? summaryDateFormatter.format(date) : fallback;
 }
 
 function importanceRadius(row) {
@@ -139,22 +148,13 @@ function renderHeaderStats(rows) {
     .sort((a, b) => a.deadlineDate - b.deadlineDate)[0];
 
   headerStatsElement.innerHTML = `
-    <div>
-      <dt>Conferences</dt>
-      <dd>${rows.length}</dd>
-    </div>
-    <div>
-      <dt>Countries</dt>
-      <dd>${countries.size}</dd>
-    </div>
-    <div>
-      <dt>A-ranked</dt>
-      <dd>${ranked}</dd>
-    </div>
-    <div>
-      <dt>Next deadline</dt>
-      <dd>${nextDeadline ? `${nextDeadline.title} · ${formatDate(nextDeadline.deadlineDate)}` : "TBD"}</dd>
-    </div>
+    <span>${rows.length} conferences</span>
+    <span aria-hidden="true">·</span>
+    <span>${countries.size} countries</span>
+    <span aria-hidden="true">·</span>
+    <span>${ranked} A-ranked</span>
+    <span aria-hidden="true">·</span>
+    <span>Next deadline: ${nextDeadline ? `${nextDeadline.title}, ${formatSummaryDate(nextDeadline.deadlineDate)}` : "TBD"}</span>
   `;
 }
 
@@ -301,6 +301,7 @@ function renderTimeline() {
       currentMonth = monthKey;
       group = document.createElement("section");
       group.className = "month-group";
+      group.dataset.monthKey = monthKey;
       group.innerHTML = `<h3 class="month-label">${monthKey}</h3>`;
       timelineElement.appendChild(group);
     }
@@ -331,6 +332,17 @@ function renderTimeline() {
     item.addEventListener("click", () => focusConference(row));
     group.appendChild(item);
   });
+}
+
+function scrollTimelineToCurrentMonth() {
+  const currentMonthKey = monthFormatter.format(new Date());
+  const currentMonthGroup = Array.from(timelineElement.querySelectorAll(".month-group")).find(
+    (group) => group.dataset.monthKey === currentMonthKey,
+  );
+
+  if (!currentMonthGroup) return;
+
+  timelineElement.scrollTop = Math.max(0, currentMonthGroup.offsetTop - timelineElement.offsetTop - 8);
 }
 
 function setupFilters() {
@@ -414,6 +426,7 @@ async function init() {
       renderSelection(initialSelection);
     }
     renderTimeline();
+    scrollTimelineToCurrentMonth();
     try {
       renderGlobe(rows);
       setStatus(`${rows.length} conference editions loaded.`, true);

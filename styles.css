@@ -87,19 +87,31 @@ button {
 .page-header {
   position: absolute;
   z-index: 12;
-  top: 1rem;
+  top: 0;
   left: var(--left-rail);
   right: 0;
-  display: grid;
-  justify-items: center;
-  gap: 0.4rem;
-  padding: 0 var(--overlay-gap);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  min-height: 6.7rem;
+  padding: 0.8rem var(--overlay-gap) 0.75rem;
+  background: rgba(247, 250, 253, 0.92);
+  box-shadow: 0 12px 28px rgba(43, 65, 93, 0.1);
+  backdrop-filter: blur(16px) saturate(1.2);
+  text-align: left;
   pointer-events: none;
 }
 
-.page-header > div {
+.header-copy {
+  display: grid;
+  gap: 0.24rem;
   min-width: 0;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
 }
 
 .brand-mark {
@@ -126,10 +138,8 @@ p {
 }
 
 h1 {
-  position: relative;
-  display: inline-block;
   color: #10264b;
-  font-size: clamp(2rem, 3.3vw, 3.95rem);
+  font-size: clamp(1.6rem, 2.5vw, 3rem);
   line-height: 1.05;
   letter-spacing: 0;
   text-wrap: balance;
@@ -140,68 +150,45 @@ h1 {
     0 16px 44px rgba(10, 44, 102, 0.22);
 }
 
-h1::after {
-  content: "";
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: -0.42rem;
-  height: 0.18rem;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(10, 44, 102, 0.92) 18%, rgba(8, 168, 138, 0.82) 50%, rgba(10, 44, 102, 0.92) 82%, transparent);
-  box-shadow:
-    0 0 14px rgba(255, 255, 255, 0.95),
-    0 0 18px rgba(10, 44, 102, 0.22);
-}
-
 .page-header p {
-  max-width: 42rem;
-  margin: 0.72rem auto 0;
-  color: #40516d;
-  font-size: clamp(0.95rem, 1.2vw, 1.16rem);
-  line-height: 1.45;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.85),
-    0 0 16px rgba(255, 255, 255, 0.92),
-    0 8px 26px rgba(255, 255, 255, 0.75);
+  max-width: 48rem;
+  color: #2f4361;
+  font-size: clamp(0.82rem, 1vw, 1rem);
+  line-height: 1.35;
 }
 
-.header-stats {
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
-  justify-content: center;
-  gap: 0.55rem;
-  margin: 0.85rem auto 0;
+.year-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.6rem;
+  border-radius: 999px;
+  padding: 0 0.62rem;
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.16rem 0.48rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.28rem;
+  color: #1f3554;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
   pointer-events: auto;
 }
 
-.header-stats div {
-  display: grid;
-  min-width: 8.8rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.58rem 0.8rem;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 10px 24px rgba(43, 65, 93, 0.12);
-  text-align: left;
-}
-
-.header-stats div:last-child {
-  min-width: 14rem;
-}
-
-.header-stats dt {
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.header-stats dd {
-  margin: 0.18rem 0 0;
-  color: var(--ink);
-  font-size: 0.96rem;
-  font-weight: 800;
+.summary-strip span[aria-hidden="true"] {
+  color: #7790ad;
+  font-weight: 500;
 }
 
 h2 {
@@ -709,11 +696,11 @@ h2 {
 
 @media (max-height: 720px) and (min-width: 901px) {
   h1 {
-    font-size: clamp(1.7rem, 2.7vw, 3rem);
+    font-size: clamp(1.45rem, 2.1vw, 2.35rem);
   }
 
   .page-header p {
-    display: none;
+    font-size: 0.78rem;
   }
 }
 
@@ -749,15 +736,13 @@ h2 {
   }
 
   .page-header {
-    left: var(--overlay-gap);
-    right: var(--overlay-gap);
-    width: calc(100vw - 2rem);
+    left: 0;
+    right: 0;
+    width: auto;
+    min-height: 6.4rem;
+    padding-inline: var(--overlay-gap);
     text-align: left;
     justify-items: start;
-  }
-
-  .header-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .selection-card {
