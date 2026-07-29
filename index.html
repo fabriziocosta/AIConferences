@@ -24,19 +24,71 @@
 
       <aside class="timeline-panel" aria-label="Conference timeline">
         <div class="timeline-header">
-          <div>
-            <p class="eyebrow">Timeline</p>
-            <h2>Deadlines and venues</h2>
+          <div class="timeline-heading">
+            <h2>Conference timeline</h2>
+            <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-menu">
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+              <span>Filters</span>
+            </button>
           </div>
-          <div class="controls" aria-label="Timeline filters">
-            <button class="control-button is-active" type="button" data-filter="all">All</button>
-            <button class="control-button" type="button" data-filter="deadline">Deadlines</button>
-            <button class="control-button" type="button" data-filter="conference">Conferences</button>
+          <div class="timeline-toolbar">
+            <div class="controls" aria-label="Timeline filters">
+              <button class="control-button is-active" type="button" data-filter="all">All</button>
+              <button class="control-button" type="button" data-filter="deadline">Deadlines</button>
+              <button class="control-button" type="button" data-filter="conference">Events</button>
+            </div>
+            <label class="search-field">
+              <span class="visually-hidden">Search conferences</span>
+              <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+              <input id="search-input" type="search" placeholder="Search conferences…" autocomplete="off" />
+            </label>
           </div>
-          <label class="search-field">
-            <span>Search</span>
-            <input id="search-input" type="search" placeholder="Conference, city, field..." autocomplete="off" />
-          </label>
+          <div id="filter-menu" class="filter-menu" hidden>
+            <label class="filter-field">
+              <span>Research area</span>
+              <select data-advanced-filter="area" id="area-filter">
+                <option value="">All areas</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>Ranking</span>
+              <select data-advanced-filter="rank" id="rank-filter">
+                <option value="">All rankings</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>Region</span>
+              <select data-advanced-filter="region" id="region-filter">
+                <option value="">All regions</option>
+                <option value="Europe">Europe</option>
+                <option value="North America">North America</option>
+                <option value="Asia-Pacific">Asia-Pacific</option>
+                <option value="Latin America">Latin America</option>
+                <option value="Africa">Africa</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>Deadline status</span>
+              <select data-advanced-filter="deadlineStatus" id="deadline-status-filter">
+                <option value="">All statuses</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>Conference month</span>
+              <select data-advanced-filter="month" id="month-filter">
+                <option value="">All months</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-legend-heading">
+            <span>Conference types</span>
+            <button id="field-legend-toggle" class="field-legend-toggle" type="button" aria-expanded="false" aria-controls="field-legend">
+              <span>Show legend</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+          <div id="field-legend" class="field-legend" aria-label="Conference type legend" hidden></div>
         </div>
         <div id="timeline" class="timeline"></div>
       </aside>

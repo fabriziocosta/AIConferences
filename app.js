@@ -5,6 +5,13 @@ const state = {
   events: [],
   filter: "all",
   query: "",
+  advancedFilters: {
+    area: "",
+    rank: "",
+    region: "",
+    deadlineStatus: "",
+    month: "",
+  },
   activeId: null,
   globe: null,
 };
@@ -16,6 +23,11 @@ const selectionCardElement = document.querySelector("#selection-card");
 const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
 const searchInput = document.querySelector("#search-input");
 const headerStatsElement = document.querySelector("#header-stats");
+const filterToggleElement = document.querySelector("#filter-toggle");
+const filterMenuElement = document.querySelector("#filter-menu");
+const advancedFilterElements = Array.from(document.querySelectorAll("[data-advanced-filter]"));
+const fieldLegendElement = document.querySelector("#field-legend");
+const fieldLegendToggleElement = document.querySelector("#field-legend-toggle");
 
 const monthFormatter = new Intl.DateTimeFormat("en", {
   month: "long",
@@ -44,6 +56,53 @@ const longMonthFormatter = new Intl.DateTimeFormat("en-GB", {
   month: "long",
   timeZone: "UTC",
 });
+
+const monthNameFormatter = new Intl.DateTimeFormat("en", {
+  month: "long",
+  timeZone: "UTC",
+});
+
+const regionCountries = {
+  Europe: new Set([
+    "Austria",
+    "Cyprus",
+    "Denmark",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "Ireland",
+    "Italy",
+    "Netherlands",
+    "Portugal",
+    "Sweden",
+    "UK",
+    "United Kingdom",
+  ]),
+  "North America": new Set(["Canada", "United States", "USA"]),
+  "Asia-Pacific": new Set(["Australia", "China", "Hong Kong SAR", "Korea", "Singapore", "Vietnam"]),
+  "Latin America": new Set(["Brazil"]),
+  Africa: new Set(["Morocco"]),
+};
+
+const fieldColors = {
+  AI: "rgba(18, 63, 140, 0.92)",
+  CV: "rgba(8, 168, 138, 0.92)",
+  NLP: "rgba(244, 165, 28, 0.92)",
+  DB: "rgba(239, 107, 69, 0.92)",
+  DM: "rgba(129, 96, 230, 0.92)",
+  IR: "rgba(48, 136, 168, 0.92)",
+  RO: "rgba(213, 84, 122, 0.92)",
+};
+
+const fieldLabels = {
+  AI: "AI / ML",
+  CV: "Vision",
+  NLP: "Language",
+  DB: "Databases",
+  DM: "Data mining",
+  IR: "Retrieval",
+  RO: "Robotics",
+};
 
 function parseDate(value) {
   if (!value || value.toUpperCase() === "TBD") return null;
@@ -90,16 +149,15 @@ function markerColor(row) {
   if (state.filter === "deadline") return "rgba(239, 107, 69, 0.92)";
   if (state.filter === "conference") return "rgba(8, 168, 138, 0.92)";
 
-  const fieldColors = {
-    AI: "rgba(18, 63, 140, 0.92)",
-    CV: "rgba(8, 168, 138, 0.92)",
-    NLP: "rgba(244, 165, 28, 0.92)",
-    DB: "rgba(239, 107, 69, 0.92)",
-    DM: "rgba(129, 96, 230, 0.92)",
-    IR: "rgba(48, 136, 168, 0.92)",
-    RO: "rgba(213, 84, 122, 0.92)",
-  };
   return fieldColors[row.subfield] || "rgba(82, 98, 122, 0.78)";
+}
+
+function conferenceFieldColor(row) {
+  return fieldColors[row.subfield] || "rgba(82, 98, 122, 0.78)";
+}
+
+function rankLabel(rank) {
+  return rank && rank !== "N" ? `${rank}-ranked` : "Not ranked";
 }
 
 function markerColorDate(row) {
@@ -111,6 +169,21 @@ function markerColorDate(row) {
 
 function hasCoordinates(row) {
   return Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude));
+}
+
+function regionFor(row) {
+  const country = (row.country || "").trim();
+  return Object.entries(regionCountries).find(([, countries]) => countries.has(country))?.[0] || "Other";
+}
+
+function matchesAdvancedFilters(row) {
+  const filters = state.advancedFilters;
+  if (filters.area && row.subfield !== filters.area) return false;
+  if (filters.rank && row.rank !== filters.rank) return false;
+  if (filters.region && regionFor(row) !== filters.region) return false;
+  if (filters.deadlineStatus && row.deadline_status !== filters.deadlineStatus) return false;
+  if (filters.month && (!row.eventStartDate || String(row.eventStartDate.getUTCMonth() + 1) !== filters.month)) return false;
+  return true;
 }
 
 function normalizeRows(rows) {
@@ -188,6 +261,23 @@ function renderHeaderStats(rows) {
   `;
 }
 
+function renderFieldLegend(rows) {
+  const fields = [...new Set(rows.map((row) => row.subfield).filter(Boolean))];
+  const orderedFields = Object.keys(fieldColors).filter((field) => fields.includes(field));
+
+  fieldLegendElement.innerHTML = orderedFields
+    .map(
+      (field) => `
+        <span class="field-legend-item">
+          <span class="field-legend-swatch" style="background: ${conferenceFieldColor({ subfield: field })}" aria-hidden="true"></span>
+          <strong>${field}</strong>
+          <span>${fieldLabels[field] || field}</span>
+        </span>
+      `,
+    )
+    .join("");
+}
+
 function focusConference(row) {
   if (!row) return;
   state.activeId = row.id;
@@ -210,7 +300,7 @@ function refreshGlobeMarkers() {
   if (!state.globe) return;
   state.globe
     .pointColor(markerColor)
-    .pointsData(state.conferences.filter(hasCoordinates));
+    .pointsData(state.conferences.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row)));
 }
 
 function renderSelection(row) {
@@ -232,15 +322,16 @@ function renderSelection(row) {
       </div>
       <p class="selection-full-name">${row.full_name || "Conference details"}</p>
       <div class="selection-meta">
-        <strong class="selection-event">${eventRange}</strong>
-        <span class="selection-location">${location}</span>
+        <div class="selection-event-group">
+          <strong class="selection-event">${eventRange}</strong>
+          <span class="selection-location">${location}</span>
+        </div>
         <div class="selection-deadline">
           <span>Submission deadline</span>
           <strong>${deadline}</strong>
         </div>
       </div>
       <div class="selection-footer">
-        ${row.link ? `<a class="conference-link" href="${row.link}" target="_blank" rel="noreferrer">Visit website</a>` : ""}
         <div class="selection-secondary-row">
           <span>${rank}</span>
           <span class="pill">${row.subfield || "AI/ML"}</span>
@@ -249,6 +340,7 @@ function renderSelection(row) {
             <span class="score-dots" aria-hidden="true">${scoreDots}</span>
             <strong>${row.importance}/10</strong>
           </span>
+          ${row.link ? `<a class="conference-link icon-link" href="${row.link}" target="_blank" rel="noreferrer" aria-label="Visit website" title="Visit website"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M14 4h6v6" /><path d="m20 4-9 9" /><path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" /></svg></a>` : ""}
         </div>
       </div>
     </div>
@@ -310,13 +402,44 @@ function filteredEvents() {
   const query = state.query.trim().toLowerCase();
   return state.events.filter((event) => {
     if (state.filter !== "all" && event.type !== state.filter) return false;
-    if (!query) return true;
 
     const row = event.conference;
+    if (!matchesAdvancedFilters(row)) return false;
+    if (!query) return true;
+
     return [row.title, row.full_name, row.place, row.city, row.country, row.subfield, row.rank]
       .filter(Boolean)
       .some((value) => value.toLowerCase().includes(query));
   });
+}
+
+function eventHasExactDate(event) {
+  return event.type === "deadline" ? Boolean(event.conference.deadlineDate) : Boolean(event.conference.eventStartDate);
+}
+
+function monthAxisPosition(date) {
+  const daysInMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  return ((date.getUTCDate() - 1) / Math.max(1, daysInMonth - 1)) * 100;
+}
+
+function renderMonthAxis(monthEvents) {
+  const markers = monthEvents
+    .filter(eventHasExactDate)
+    .map((event) => {
+      const row = event.conference;
+      const date = event.type === "deadline" ? row.deadlineDate : row.eventStartDate;
+      return `<span class="axis-dot axis-dot-${event.type}" style="left: ${monthAxisPosition(date)}%" title="${event.label}: ${row.title} · ${event.displayDate}" role="img" aria-label="${event.label}: ${row.title} · ${event.displayDate}"></span>`;
+    })
+    .join("");
+
+  return `
+    <div class="month-axis" aria-hidden="true">
+      <div class="month-axis-track">
+        <span class="month-axis-line"></span>
+        ${markers}
+      </div>
+    </div>
+  `;
 }
 
 function renderTimeline() {
@@ -338,7 +461,13 @@ function renderTimeline() {
       group = document.createElement("section");
       group.className = "month-group";
       group.dataset.monthKey = monthKey;
-      group.innerHTML = `<h3 class="month-label">${monthKey}</h3>`;
+      const monthEvents = events.filter((event) => monthFormatter.format(event.sortDate) === monthKey);
+      group.innerHTML = `
+        <div class="month-label-row">
+          <h3 class="month-label">${monthKey}</h3>
+          ${renderMonthAxis(monthEvents)}
+        </div>
+      `;
       timelineElement.appendChild(group);
     }
 
@@ -351,18 +480,24 @@ function renderTimeline() {
       <span class="event-mark" aria-hidden="true"></span>
       <span class="event-body">
         <span class="event-kicker">
-          <span>${event.label}</span>
+          <span class="event-kind">
+            <span class="event-type-swatch" style="background: ${conferenceFieldColor(row)}" aria-hidden="true"></span>
+            <span>${event.label}</span>
+          </span>
           <span class="event-date">${event.displayDate}</span>
         </span>
         <span class="event-title">
-          <strong>${row.title}</strong>
-          <span>${row.year}</span>
+          <span class="event-heading">
+            <strong>${row.title}</strong>
+            <span class="event-year">${row.year}</span>
+          </span>
+          <span class="event-secondary">
+            <span class="event-rank" title="${rankLabel(row.rank)}">${row.rank || "N"}</span>
+            <span class="event-field" title="${fieldLabels[row.subfield] || row.subfield || "AI/ML"}">${row.subfield || "AI/ML"}</span>
+          </span>
         </span>
-        <span class="event-place">${row.place || "Location TBD"} · ${row.subfield || "AI/ML"} · ${row.rank || "N"}</span>
+        <span class="event-place event-full-name">${row.full_name || "Conference details"}</span>
         ${event.actualDate && event.actualDate !== event.displayDate ? `<span class="event-place">Actual deadline: ${event.actualDate}</span>` : ""}
-        <span class="event-importance" aria-hidden="true">
-          <span style="width: ${Math.max(10, row.importance * 10)}%"></span>
-        </span>
       </span>
     `;
     item.addEventListener("click", () => focusConference(row));
@@ -381,6 +516,25 @@ function scrollTimelineToCurrentMonth() {
   timelineElement.scrollTop = Math.max(0, currentMonthGroup.offsetTop - timelineElement.offsetTop - 8);
 }
 
+function populateSelect(select, values, allLabel, formatValue = (value) => value) {
+  select.innerHTML = `<option value="">${allLabel}</option>`;
+  values.forEach((value) => {
+    select.insertAdjacentHTML("beforeend", `<option value="${value}">${formatValue(value)}</option>`);
+  });
+}
+
+function populateAdvancedFilters(rows) {
+  const areas = [...new Set(rows.map((row) => row.subfield).filter(Boolean))].sort();
+  const rankings = [...new Set(rows.map((row) => row.rank).filter(Boolean))].sort();
+  const deadlineStatuses = [...new Set(rows.map((row) => row.deadline_status).filter(Boolean))].sort();
+  const months = Array.from({ length: 12 }, (_, index) => String(index + 1));
+
+  populateSelect(document.querySelector("#area-filter"), areas, "All areas");
+  populateSelect(document.querySelector("#rank-filter"), rankings, "All rankings");
+  populateSelect(document.querySelector("#deadline-status-filter"), deadlineStatuses, "All statuses", (value) => value === "TBD" ? "TBD" : "Known");
+  populateSelect(document.querySelector("#month-filter"), months, "All months", (value) => monthNameFormatter.format(new Date(Date.UTC(2026, Number(value) - 1, 1))));
+}
+
 function setupFilters() {
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -396,6 +550,37 @@ function setupFilters() {
   searchInput.addEventListener("input", () => {
     state.query = searchInput.value;
     renderTimeline();
+  });
+
+  filterToggleElement.addEventListener("click", () => {
+    const isOpen = filterMenuElement.hidden;
+    filterMenuElement.hidden = !isOpen;
+    filterToggleElement.setAttribute("aria-expanded", String(isOpen));
+    filterToggleElement.classList.toggle("is-active", isOpen);
+  });
+
+  advancedFilterElements.forEach((select) => {
+    select.addEventListener("change", () => {
+      state.advancedFilters[select.dataset.advancedFilter] = select.value;
+      refreshGlobeMarkers();
+      renderTimeline();
+    });
+  });
+
+  fieldLegendToggleElement.addEventListener("click", () => {
+    const isOpen = fieldLegendElement.hidden;
+    fieldLegendElement.hidden = !isOpen;
+    fieldLegendToggleElement.setAttribute("aria-expanded", String(isOpen));
+    fieldLegendToggleElement.querySelector("span").textContent = isOpen ? "Hide legend" : "Show legend";
+    fieldLegendToggleElement.classList.toggle("is-active", isOpen);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || filterMenuElement.hidden) return;
+    filterMenuElement.hidden = true;
+    filterToggleElement.setAttribute("aria-expanded", "false");
+    filterToggleElement.classList.remove("is-active");
+    filterToggleElement.focus();
   });
 }
 
@@ -455,7 +640,9 @@ async function init() {
     const rows = await loadData();
     state.conferences = rows;
     state.events = buildEvents(rows);
+    populateAdvancedFilters(rows);
     renderHeaderStats(rows);
+    renderFieldLegend(rows);
     const initialSelection = rows.find((row) => row.title === "NeurIPS") || rows[0];
     if (initialSelection) {
       state.activeId = initialSelection.id;
