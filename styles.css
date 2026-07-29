@@ -437,16 +437,16 @@ h2 {
 .globe::before {
   content: "";
   position: absolute;
-  inset: 7% 5% 1% 5%;
+  inset: 8% 6% 3% 6%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.26) 44%, transparent 70%);
-  filter: blur(10px);
+  background: radial-gradient(ellipse, rgba(111, 176, 225, 0.24), rgba(41, 94, 151, 0.13) 44%, transparent 72%);
+  filter: blur(18px);
   pointer-events: none;
 }
 
 .globe canvas {
   display: block;
-  filter: saturate(1.08) brightness(1.12) contrast(0.98);
+  filter: saturate(0.42) brightness(0.84) contrast(0.86) drop-shadow(0 28px 42px rgba(10, 35, 73, 0.16));
   opacity: 1;
 }
 

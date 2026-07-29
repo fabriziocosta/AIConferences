@@ -351,11 +351,10 @@ function renderGlobe(rows) {
   const points = rows.filter(hasCoordinates);
   const globe = Globe()(globeElement)
     .backgroundColor("rgba(0,0,0,0)")
-    .globeImageUrl("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
-    .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
+    .globeImageUrl("//unpkg.com/three-globe/example/img/earth-day.jpg")
     .showAtmosphere(true)
-    .atmosphereColor("#ffffff")
-    .atmosphereAltitude(0.24)
+    .atmosphereColor("#78b7e5")
+    .atmosphereAltitude(0.17)
     .pointLat((row) => row.latitude)
     .pointLng((row) => row.longitude)
     .pointAltitude((row) => 0.018 + row.importance * 0.006)
@@ -385,8 +384,13 @@ function renderGlobe(rows) {
   const material = globe.globeMaterial();
   material.transparent = false;
   material.opacity = 1;
+  material.color.set("#c6d7e6");
+  material.emissive.set("#123b68");
+  material.emissiveIntensity = 0.18;
+  material.specular.set("#183f68");
+  material.shininess = 8;
 
-  globe.pointOfView({ lat: 18, lng: 30, altitude: 2.28 }, 0);
+  globe.pointOfView({ lat: 18, lng: 30, altitude: 3.1 }, 0);
   state.globe = globe;
   resizeGlobe();
   window.addEventListener("resize", resizeGlobe);
