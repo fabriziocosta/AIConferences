@@ -32,6 +32,7 @@ const searchInput = document.querySelector("#search-input");
 const headerStatsElement = document.querySelector("#header-stats");
 const filterToggleElement = document.querySelector("#filter-toggle");
 const filterMenuElement = document.querySelector("#filter-menu");
+const clearFiltersElement = document.querySelector("#clear-filters");
 const advancedFilterElements = Array.from(document.querySelectorAll("[data-advanced-filter]"));
 const fieldLegendElement = document.querySelector("#field-legend");
 const fieldLegendToggleElement = document.querySelector("#field-legend-toggle");
@@ -326,13 +327,25 @@ function matchesAdvancedFilters(row) {
   if (filters.area && row.subfield !== filters.area) return false;
   if (filters.rank && row.rank !== filters.rank) return false;
   if (filters.region && regionFor(row) !== filters.region) return false;
-  if (filters.deadlineStatus && row.deadline_status !== filters.deadlineStatus) return false;
+  if (filters.deadlineStatus === "active" && !hasActiveSubmission(row)) return false;
+  if (filters.deadlineStatus && filters.deadlineStatus !== "active" && row.deadline_status !== filters.deadlineStatus) return false;
   if (filters.month && (!row.eventStartDate || String(row.eventStartDate.getUTCMonth() + 1) !== filters.month)) return false;
   return true;
 }
 
+function hasActiveSubmission(row) {
+  if (!row.deadlineDate) return false;
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return row.deadlineDate.getTime() >= today;
+}
+
 function matchesVisibleFields(row) {
   return !row.subfield || !state.hiddenFields.has(row.subfield);
+}
+
+function visibleMarkerRows(rows) {
+  return rows.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row) && matchesVisibleFields(row));
 }
 
 function normalizeRows(rows) {
@@ -453,7 +466,7 @@ function focusConference(row) {
 
 function refreshGlobeMarkers() {
   if (!state.globe) return;
-  const markerRows = state.conferences.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row) && matchesVisibleFields(row));
+  const markerRows = visibleMarkerRows(state.conferences);
   state.globe
     .pointColor(markerColor)
     .pointsData(markerRows)
@@ -536,7 +549,7 @@ function applyGlobeTheme() {
 }
 
 function renderGlobe(rows, countries) {
-  const points = rows.filter(hasCoordinates);
+  const points = visibleMarkerRows(rows);
   const globe = Globe()(globeElement)
     .backgroundColor("rgba(0,0,0,0)")
     .globeImageUrl(null)
@@ -566,6 +579,7 @@ function renderGlobe(rows, countries) {
     .pointRadius(0.44)
     .pointColor(markerColor)
     .pointsMerge(false)
+    .pointsTransitionDuration(0)
     .pointsData(points)
     .pointLabel(
       (row) => `
@@ -736,7 +750,9 @@ function populateAdvancedFilters(rows) {
 
   populateSelect(document.querySelector("#area-filter"), areas, "All areas");
   populateSelect(document.querySelector("#rank-filter"), rankings, "All rankings");
-  populateSelect(document.querySelector("#deadline-status-filter"), deadlineStatuses, "All statuses", (value) => value === "TBD" ? "TBD" : "Known");
+  const deadlineStatusSelect = document.querySelector("#deadline-status-filter");
+  populateSelect(deadlineStatusSelect, deadlineStatuses, "All statuses", (value) => value === "TBD" ? "TBD" : "Known");
+  deadlineStatusSelect.querySelector("option").insertAdjacentHTML("afterend", `<option value="active">Active</option>`);
   populateSelect(document.querySelector("#month-filter"), months, "All months", (value) => monthNameFormatter.format(new Date(Date.UTC(2026, Number(value) - 1, 1))));
 }
 
@@ -786,6 +802,29 @@ function setupAcronymToggle() {
   acronymToggleElement.addEventListener("click", () => setAcronymVisibility(!state.showAcronyms));
 }
 
+function clearAllFilters() {
+  state.filter = "all";
+  state.query = "";
+  state.advancedFilters = {
+    area: "",
+    rank: "",
+    region: "",
+    deadlineStatus: "",
+    month: "",
+  };
+  state.hiddenFields.clear();
+
+  searchInput.value = "";
+  filterButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.filter === "all"));
+  advancedFilterElements.forEach((select) => {
+    select.value = "";
+  });
+
+  renderFieldLegend(state.conferences);
+  refreshGlobeMarkers();
+  renderTimeline();
+}
+
 function setupFilters() {
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -817,6 +856,8 @@ function setupFilters() {
       renderTimeline();
     });
   });
+
+  clearFiltersElement.addEventListener("click", clearAllFilters);
 
   fieldLegendToggleElement.addEventListener("click", () => {
     const isOpen = fieldLegendElement.hidden;

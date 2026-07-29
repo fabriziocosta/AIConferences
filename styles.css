@@ -403,6 +403,26 @@ h2 {
   display: none;
 }
 
+.clear-filters {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-height: 2rem;
+  border: 0;
+  padding: 0 0.25rem;
+  background: transparent;
+  color: var(--blue-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.clear-filters:hover,
+.clear-filters:focus-visible {
+  color: var(--teal);
+  outline: none;
+}
+
 .filter-field {
   display: grid;
   gap: 0.24rem;
