@@ -1,4 +1,5 @@
 const DATA_URL = "data/conferences.csv";
+const COUNTRY_BOUNDARIES_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
 
 const state = {
   conferences: [],
@@ -13,6 +14,8 @@ const state = {
     month: "",
   },
   hiddenFields: new Set(),
+  countries: [],
+  selectionCollapsed: false,
   activeId: null,
   globe: null,
 };
@@ -29,6 +32,7 @@ const filterMenuElement = document.querySelector("#filter-menu");
 const advancedFilterElements = Array.from(document.querySelectorAll("[data-advanced-filter]"));
 const fieldLegendElement = document.querySelector("#field-legend");
 const fieldLegendToggleElement = document.querySelector("#field-legend-toggle");
+const themeToggleElement = document.querySelector("#theme-toggle");
 
 const monthFormatter = new Intl.DateTimeFormat("en", {
   month: "long",
@@ -105,6 +109,35 @@ const fieldLabels = {
   RO: "Robotics",
 };
 
+const globeThemes = {
+  light: {
+    landColors: ["#a6b9ad", "#9bb0a8", "#b2bca5", "#9eafa1", "#acb6a2"],
+    water: "#5c96aa",
+    emissive: "#28586c",
+    specular: "#2d5969",
+    atmosphere: "#4f8da5",
+    side: "rgba(42, 83, 98, 0.38)",
+    border: "rgba(38, 70, 83, 0.78)",
+  },
+  dark: {
+    landColors: ["#536b66", "#4a625f", "#5d6e5e", "#4c655e", "#566b5d"],
+    water: "#254b5c",
+    emissive: "#142f3d",
+    specular: "#1b3c4b",
+    atmosphere: "#356c82",
+    side: "rgba(8, 27, 37, 0.58)",
+    border: "rgba(135, 181, 183, 0.68)",
+  },
+};
+
+function isDarkTheme() {
+  return document.documentElement.dataset.theme === "dark";
+}
+
+function currentGlobeTheme() {
+  return globeThemes[isDarkTheme() ? "dark" : "light"];
+}
+
 function parseDate(value) {
   if (!value || value.toUpperCase() === "TBD") return null;
   const dateOnly = value.includes(" ") ? value.split(" ")[0] : value;
@@ -155,6 +188,12 @@ function markerColor(row) {
 
 function conferenceFieldColor(row) {
   return fieldColors[row.subfield] || "rgba(82, 98, 122, 0.78)";
+}
+
+function countryLandColor(country) {
+  const id = Number(country.id);
+  const colors = currentGlobeTheme().landColors;
+  return colors[Number.isFinite(id) ? id % colors.length : 0];
 }
 
 function rankLabel(rank) {
@@ -289,6 +328,7 @@ function renderFieldLegend(rows) {
 function focusConference(row) {
   if (!row) return;
   state.activeId = row.id;
+  state.selectionCollapsed = false;
   renderSelection(row);
   refreshGlobeMarkers();
   if (hasCoordinates(row) && state.globe) {
@@ -314,16 +354,13 @@ function refreshGlobeMarkers() {
 function renderSelection(row) {
   const score = Math.round(Number(row.importance) || 1);
   const scoreDots = Array.from({ length: 10 }, (_, index) => `<i class="${index < score ? "is-filled" : ""}"></i>`).join("");
-  const imageStyle = row.image_url
-    ? ` style="background-image: linear-gradient(rgba(55, 150, 230, 0.1), rgba(55, 150, 230, 0.3)), url('${row.image_url}')"`
-    : "";
   const eventRange = formatEventRange(row.eventStartDate, row.eventEndDate, row.date_text || "Date TBD");
   const deadline = row.deadlineDate ? longDateFormatter.format(row.deadlineDate) : row.deadline_status === "TBD" ? "TBD" : "Not listed";
   const location = row.city && row.country ? `${row.city}, ${row.country}` : row.place || "Location TBD";
   const rank = row.rank && row.rank !== "N" ? `${row.rank}-ranked` : "Not ranked";
 
   selectionCardElement.innerHTML = `
-    <div class="selection-art" aria-hidden="true"${imageStyle}></div>
+    <div class="selection-art${row.image_url ? " has-image" : ""}" aria-hidden="true">${row.image_url ? `<img src="${row.image_url}" alt="" />` : ""}</div>
     <div class="selection-content">
       <div class="selection-title-row">
         <h3>${row.title} ${row.year}</h3>
@@ -352,17 +389,58 @@ function renderSelection(row) {
         </div>
       </div>
     </div>
+    <button class="selection-toggle" type="button" aria-expanded="true" aria-label="Collapse conference details" title="Collapse conference details">
+      <svg class="selection-caret" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="m6 9 6 6 6-6" /></svg>
+    </button>
   `;
+  updateSelectionCardState();
 }
 
-function renderGlobe(rows) {
+function updateSelectionCardState() {
+  selectionCardElement.classList.toggle("is-collapsed", state.selectionCollapsed);
+  const toggle = selectionCardElement.querySelector(".selection-toggle");
+  if (!toggle) return;
+
+  const isExpanded = !state.selectionCollapsed;
+  toggle.setAttribute("aria-expanded", String(isExpanded));
+  toggle.setAttribute("aria-label", `${isExpanded ? "Collapse" : "Expand"} conference details`);
+  toggle.title = `${isExpanded ? "Collapse" : "Expand"} conference details`;
+}
+
+function applyGlobeTheme() {
+  if (!state.globe) return;
+
+  const theme = currentGlobeTheme();
+  const material = state.globe.globeMaterial();
+  material.color.set(theme.water);
+  material.emissive.set(theme.emissive);
+  material.emissiveIntensity = isDarkTheme() ? 0.08 : 0.1;
+  material.specular.set(theme.specular);
+  material.shininess = 4;
+
+  state.globe
+    .atmosphereColor(theme.atmosphere)
+    .polygonCapColor(countryLandColor)
+    .polygonSideColor(() => theme.side)
+    .polygonStrokeColor(() => theme.border)
+    .polygonsData(state.countries);
+}
+
+function renderGlobe(rows, countries) {
   const points = rows.filter(hasCoordinates);
   const globe = Globe()(globeElement)
     .backgroundColor("rgba(0,0,0,0)")
-    .globeImageUrl("//unpkg.com/three-globe/example/img/earth-day.jpg")
+    .globeImageUrl(null)
     .showAtmosphere(true)
-    .atmosphereColor("#78b7e5")
-    .atmosphereAltitude(0.17)
+    .atmosphereColor(currentGlobeTheme().atmosphere)
+    .atmosphereAltitude(0.09)
+    .polygonsData(countries)
+    .polygonAltitude(0.006)
+    .polygonCapColor(countryLandColor)
+    .polygonSideColor(() => currentGlobeTheme().side)
+    .polygonStrokeColor(() => currentGlobeTheme().border)
+    .polygonCapCurvatureResolution(0.45)
+    .polygonsTransitionDuration(0)
     .pointLat((row) => row.latitude)
     .pointLng((row) => row.longitude)
     .pointAltitude((row) => 0.018 + row.importance * 0.006)
@@ -392,14 +470,10 @@ function renderGlobe(rows) {
   const material = globe.globeMaterial();
   material.transparent = false;
   material.opacity = 1;
-  material.color.set("#c6d7e6");
-  material.emissive.set("#123b68");
-  material.emissiveIntensity = 0.18;
-  material.specular.set("#183f68");
-  material.shininess = 8;
 
   globe.pointOfView({ lat: 18, lng: 30, altitude: 3.1 }, 0);
   state.globe = globe;
+  applyGlobeTheme();
   resizeGlobe();
   window.addEventListener("resize", resizeGlobe);
 }
@@ -548,6 +622,38 @@ function populateAdvancedFilters(rows) {
   populateSelect(document.querySelector("#month-filter"), months, "All months", (value) => monthNameFormatter.format(new Date(Date.UTC(2026, Number(value) - 1, 1))));
 }
 
+function setTheme(theme, persist = true) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  const isDark = nextTheme === "dark";
+  document.documentElement.dataset.theme = nextTheme;
+  themeToggleElement.setAttribute("aria-pressed", String(isDark));
+  themeToggleElement.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} mode`);
+  themeToggleElement.title = `Switch to ${isDark ? "light" : "dark"} mode`;
+  themeToggleElement.querySelector(".theme-toggle-label").textContent = isDark ? "Light" : "Dark";
+  applyGlobeTheme();
+
+  if (persist) {
+    try {
+      localStorage.setItem("ai-conference-globe-theme", nextTheme);
+    } catch (error) {
+      console.warn("Theme preference could not be saved.", error);
+    }
+  }
+}
+
+function setupTheme() {
+  let savedTheme = "";
+  try {
+    savedTheme = localStorage.getItem("ai-conference-globe-theme") || "";
+  } catch (error) {
+    console.warn("Theme preference could not be read.", error);
+  }
+
+  const preferredTheme = savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  setTheme(preferredTheme, false);
+  themeToggleElement.addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
+}
+
 function setupFilters() {
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -605,6 +711,12 @@ function setupFilters() {
     renderTimeline();
   });
 
+  selectionCardElement.addEventListener("click", (event) => {
+    if (!event.target.closest(".selection-toggle")) return;
+    state.selectionCollapsed = !state.selectionCollapsed;
+    updateSelectionCardState();
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || filterMenuElement.hidden) return;
     filterMenuElement.hidden = true;
@@ -621,6 +733,16 @@ async function loadData() {
   }
   const csvText = await response.text();
   return normalizeRows(parseCsv(csvText));
+}
+
+async function loadCountryBoundaries() {
+  const response = await fetch(COUNTRY_BOUNDARIES_URL);
+  if (!response.ok) {
+    throw new Error(`Could not load country boundaries: ${response.status}`);
+  }
+
+  const topology = await response.json();
+  return window.topojson.feature(topology, topology.objects.countries).features;
 }
 
 function parseCsv(text) {
@@ -664,11 +786,20 @@ function parseCsv(text) {
 }
 
 async function init() {
+  setupTheme();
   setupFilters();
 
   try {
     const rows = await loadData();
+    let countries = [];
+    try {
+      countries = await loadCountryBoundaries();
+    } catch (boundaryError) {
+      console.warn(boundaryError);
+    }
+
     state.conferences = rows;
+    state.countries = countries;
     state.events = buildEvents(rows);
     populateAdvancedFilters(rows);
     renderHeaderStats(rows);
@@ -681,7 +812,7 @@ async function init() {
     renderTimeline();
     scrollTimelineToCurrentMonth();
     try {
-      renderGlobe(rows);
+      renderGlobe(rows, countries);
       setStatus(`${rows.length} conference editions loaded.`, true);
     } catch (globeError) {
       console.error(globeError);

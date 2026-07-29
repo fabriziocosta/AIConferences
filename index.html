@@ -16,6 +16,11 @@
           <div class="title-row">
             <h1>AI Conference Globe</h1>
             <span class="year-badge" aria-label="Conference years">2026–2027</span>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+              <svg class="theme-icon theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v2M12 19.5v2M4.58 4.58l1.42 1.42M18 18l1.42 1.42M2.5 12h2M19.5 12h2M4.58 19.42 6 18M18 6l1.42-1.42" /></svg>
+              <svg class="theme-icon theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" /></svg>
+              <span class="theme-toggle-label">Dark</span>
+            </button>
           </div>
           <p>Deadlines, dates and locations for major AI and machine-learning conferences.</p>
           <p id="header-stats" class="summary-strip" aria-label="Conference summary"></p>
@@ -103,6 +108,7 @@
     </main>
 
     <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
