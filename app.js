@@ -83,14 +83,26 @@ const regionCountries = {
     "Ireland",
     "Italy",
     "Netherlands",
+    "Nederland",
     "Portugal",
     "Sweden",
     "UK",
     "United Kingdom",
+    "Ελλάς",
   ]),
   "North America": new Set(["Canada", "United States", "USA"]),
-  "Asia-Pacific": new Set(["Australia", "China", "Hong Kong SAR", "Korea", "Singapore", "Vietnam"]),
-  "Latin America": new Set(["Brazil"]),
+  "Asia-Pacific": new Set([
+    "Australia",
+    "China",
+    "中国",
+    "Hong Kong SAR",
+    "Korea",
+    "South Korea",
+    "Singapore",
+    "Vietnam",
+    "Việt Nam",
+  ]),
+  "Latin America": new Set(["Brazil", "Costa Rica"]),
   Africa: new Set(["Morocco"]),
 };
 
@@ -344,8 +356,30 @@ function matchesVisibleFields(row) {
   return !row.subfield || !state.hiddenFields.has(row.subfield);
 }
 
+function matchesTimelineType(row) {
+  if (state.filter === "deadline") return Boolean(row.deadlineDate || row.deadline_status === "TBD");
+  if (state.filter === "conference") return Boolean(row.eventStartDate || row.event_status === "TBD");
+  return true;
+}
+
+function matchesSearchQuery(row) {
+  const query = state.query.trim().toLowerCase();
+  if (!query) return true;
+
+  return [row.title, row.full_name, row.place, row.city, row.country, row.subfield, row.rank]
+    .filter(Boolean)
+    .some((value) => value.toLowerCase().includes(query));
+}
+
 function visibleMarkerRows(rows) {
-  return rows.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row) && matchesVisibleFields(row));
+  return rows.filter(
+    (row) =>
+      hasCoordinates(row) &&
+      matchesTimelineType(row) &&
+      matchesAdvancedFilters(row) &&
+      matchesVisibleFields(row) &&
+      matchesSearchQuery(row),
+  );
 }
 
 function normalizeRows(rows) {
@@ -617,7 +651,6 @@ function resizeGlobe() {
 }
 
 function filteredEvents() {
-  const query = state.query.trim().toLowerCase();
   const activeDeadlineView = state.advancedFilters.deadlineStatus === "active" && state.filter === "all";
   return state.events.filter((event) => {
     if (state.filter !== "all" && event.type !== state.filter) return false;
@@ -626,11 +659,7 @@ function filteredEvents() {
     const row = event.conference;
     if (!matchesVisibleFields(row)) return false;
     if (!matchesAdvancedFilters(row)) return false;
-    if (!query) return true;
-
-    return [row.title, row.full_name, row.place, row.city, row.country, row.subfield, row.rank]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(query));
+    return matchesSearchQuery(row);
   });
 }
 
@@ -842,6 +871,7 @@ function setupFilters() {
 
   searchInput.addEventListener("input", () => {
     state.query = searchInput.value;
+    refreshGlobeMarkers();
     renderTimeline({ resetScroll: true });
   });
 
