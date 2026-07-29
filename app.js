@@ -555,7 +555,7 @@ function renderGlobe(rows, countries) {
     .labelLng((row) => row.labelLongitude ?? row.markerLongitude ?? row.longitude)
     .labelText((row) => row.title)
     .labelColor(() => "#071a2b")
-    .labelAltitude(0.012)
+    .labelAltitude((row) => importanceAltitude(row) + 0.028)
     .labelSize(0.48)
     .labelResolution(2)
     .labelIncludeDot(false)
@@ -775,8 +775,9 @@ function setupTheme() {
 function setAcronymVisibility(isVisible) {
   state.showAcronyms = isVisible;
   acronymToggleElement.setAttribute("aria-pressed", String(isVisible));
-  acronymToggleElement.setAttribute("aria-label", `${isVisible ? "Hide" : "Show"} conference acronyms on the globe`);
-  acronymToggleElement.title = `${isVisible ? "Hide" : "Show"} conference acronyms on the globe`;
+  acronymToggleElement.setAttribute("aria-label", `${isVisible ? "Hide" : "Show"} conference names on the globe`);
+  acronymToggleElement.title = `${isVisible ? "Hide" : "Show"} conference names on the globe`;
+  acronymToggleElement.querySelector("span").textContent = `${isVisible ? "Hide" : "Show"} names`;
   acronymToggleElement.classList.toggle("is-active", isVisible);
   refreshGlobeMarkers();
 }
