@@ -33,6 +33,18 @@ const summaryDateFormatter = new Intl.DateTimeFormat("en", {
   month: "short",
 });
 
+const longDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+const longMonthFormatter = new Intl.DateTimeFormat("en-GB", {
+  month: "long",
+  timeZone: "UTC",
+});
+
 function parseDate(value) {
   if (!value || value.toUpperCase() === "TBD") return null;
   const dateOnly = value.includes(" ") ? value.split(" ")[0] : value;
@@ -46,6 +58,24 @@ function formatDate(date, fallback = "TBD") {
 
 function formatSummaryDate(date, fallback = "TBD") {
   return date ? summaryDateFormatter.format(date) : fallback;
+}
+
+function formatEventRange(start, end, fallback = "Date TBD") {
+  if (!start) return fallback;
+  if (!end || end.getTime() === start.getTime()) return longDateFormatter.format(start);
+
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  const startMonth = start.getUTCMonth();
+  const endMonth = end.getUTCMonth();
+
+  if (startYear === endYear && startMonth === endMonth) {
+    return `${start.getUTCDate()}–${end.getUTCDate()} ${longMonthFormatter.format(start)} ${startYear}`;
+  }
+  if (startYear === endYear) {
+    return `${start.getUTCDate()} ${longMonthFormatter.format(start)}–${end.getUTCDate()} ${longMonthFormatter.format(end)} ${startYear}`;
+  }
+  return `${longDateFormatter.format(start)}–${longDateFormatter.format(end)}`;
 }
 
 function importanceRadius(row) {
@@ -189,10 +219,9 @@ function renderSelection(row) {
   const imageStyle = row.image_url
     ? ` style="background-image: linear-gradient(rgba(55, 150, 230, 0.1), rgba(55, 150, 230, 0.3)), url('${row.image_url}')"`
     : "";
-  const eventRange = row.eventStartDate
-    ? `${formatDate(row.eventStartDate)}${row.eventEndDate && row.eventEndDate.getTime() !== row.eventStartDate.getTime() ? ` - ${formatDate(row.eventEndDate)}` : ""}`
-    : row.date_text || "Date TBD";
-  const deadline = row.deadlineDate ? formatDate(row.deadlineDate) : row.deadline_status === "TBD" ? "TBD" : "Not listed";
+  const eventRange = formatEventRange(row.eventStartDate, row.eventEndDate, row.date_text || "Date TBD");
+  const deadline = row.deadlineDate ? longDateFormatter.format(row.deadlineDate) : row.deadline_status === "TBD" ? "TBD" : "Not listed";
+  const location = row.city && row.country ? `${row.city}, ${row.country}` : row.place || "Location TBD";
   const rank = row.rank && row.rank !== "N" ? `${row.rank}-ranked` : "Not ranked";
 
   selectionCardElement.innerHTML = `
@@ -200,20 +229,27 @@ function renderSelection(row) {
     <div class="selection-content">
       <div class="selection-title-row">
         <h3>${row.title} ${row.year}</h3>
-        <span class="pill">${row.subfield || "AI/ML"}</span>
       </div>
       <p class="selection-full-name">${row.full_name || "Conference details"}</p>
       <div class="selection-meta">
-        <span>${eventRange}</span>
-        <span>${row.place || "Location TBD"}</span>
-        <span>${rank} · ${row.country || "Country TBD"}</span>
-        <span>Deadline: ${deadline}</span>
-        ${row.link ? `<span class="url-row"><a class="conference-link" href="${row.link}" target="_blank" rel="noreferrer">Open conference site</a></span>` : ""}
+        <strong class="selection-event">${eventRange}</strong>
+        <span class="selection-location">${location}</span>
+        <div class="selection-deadline">
+          <span>Submission deadline</span>
+          <strong>${deadline}</strong>
+        </div>
       </div>
-      <div class="score-row">
-        <span>Importance Score</span>
-        <span class="score-dots" aria-hidden="true">${scoreDots}</span>
-        <strong>${row.importance}/10</strong>
+      <div class="selection-footer">
+        ${row.link ? `<a class="conference-link" href="${row.link}" target="_blank" rel="noreferrer">Visit website</a>` : ""}
+        <div class="selection-secondary-row">
+          <span>${rank}</span>
+          <span class="pill">${row.subfield || "AI/ML"}</span>
+          <span class="score-summary">
+            <span>Importance</span>
+            <span class="score-dots" aria-hidden="true">${scoreDots}</span>
+            <strong>${row.importance}/10</strong>
+          </span>
+        </div>
       </div>
     </div>
   `;
