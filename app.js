@@ -15,6 +15,9 @@ const state = {
   },
   hiddenFields: new Set(),
   countries: [],
+  importanceMin: 1,
+  importanceMax: 10,
+  showAcronyms: false,
   selectionCollapsed: false,
   activeId: null,
   globe: null,
@@ -33,6 +36,7 @@ const advancedFilterElements = Array.from(document.querySelectorAll("[data-advan
 const fieldLegendElement = document.querySelector("#field-legend");
 const fieldLegendToggleElement = document.querySelector("#field-legend-toggle");
 const themeToggleElement = document.querySelector("#theme-toggle");
+const acronymToggleElement = document.querySelector("#acronym-toggle");
 
 const monthFormatter = new Intl.DateTimeFormat("en", {
   month: "long",
@@ -171,19 +175,16 @@ function formatEventRange(start, end, fallback = "Date TBD") {
   return `${longDateFormatter.format(start)}–${longDateFormatter.format(end)}`;
 }
 
-function importanceRadius(row) {
-  const importance = Number(row.importance) || 1;
-  return 0.18 + importance * 0.055;
+function importanceAltitude(row) {
+  const importance = Number(row.importance) || state.importanceMin;
+  const range = state.importanceMax - state.importanceMin;
+  if (range <= 0) return 0.012;
+  const normalizedImportance = Math.max(0, Math.min(1, (importance - state.importanceMin) / range));
+  return 0.012 + normalizedImportance * 0.14;
 }
 
 function markerColor(row) {
-  if (row.id === state.activeId) {
-    return "rgba(239, 107, 69, 1)";
-  }
-  if (state.filter === "deadline") return "rgba(239, 107, 69, 0.92)";
-  if (state.filter === "conference") return "rgba(8, 168, 138, 0.92)";
-
-  return fieldColors[row.subfield] || "rgba(82, 98, 122, 0.78)";
+  return conferenceFieldColor(row);
 }
 
 function conferenceFieldColor(row) {
@@ -211,6 +212,110 @@ function hasCoordinates(row) {
   return Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude));
 }
 
+function spreadOverlappingMarkers(rows) {
+  const coordinateGroups = new Map();
+
+  rows.forEach((row) => {
+    if (!hasCoordinates(row)) return;
+    const key = `${Number(row.latitude).toFixed(3)},${Number(row.longitude).toFixed(3)}`;
+    const group = coordinateGroups.get(key) || [];
+    group.push(row);
+    coordinateGroups.set(key, group);
+  });
+
+  coordinateGroups.forEach((group) => {
+    group.forEach((row, index) => {
+      row.markerLatitude = row.latitude;
+      row.markerLongitude = row.longitude;
+
+      if (group.length === 1) return;
+
+      const angle = (Math.PI * 2 * index) / group.length - Math.PI / 2;
+      const offset = 0.55;
+      const latitude = Number(row.latitude);
+      const longitude = Number(row.longitude);
+      const latitudeOffset = Math.sin(angle) * offset;
+      const longitudeOffset = (Math.cos(angle) * offset) / Math.max(0.25, Math.cos((latitude * Math.PI) / 180));
+
+      row.markerLatitude = Math.max(-89.5, Math.min(89.5, latitude + latitudeOffset));
+      row.markerLongitude = ((longitude + longitudeOffset + 540) % 360) - 180;
+    });
+  });
+
+  return spreadLabelPositions(rows);
+}
+
+function markerDistance(first, second) {
+  const latitude = Number(first.markerLatitude ?? first.latitude);
+  const longitude = Number(first.markerLongitude ?? first.longitude);
+  const otherLatitude = Number(second.markerLatitude ?? second.latitude);
+  const otherLongitude = Number(second.markerLongitude ?? second.longitude);
+  const latitudeDistance = latitude - otherLatitude;
+  const longitudeDistance = (longitude - otherLongitude) * Math.cos((latitude * Math.PI) / 180);
+  return Math.hypot(latitudeDistance, longitudeDistance);
+}
+
+function spreadLabelPositions(rows) {
+  const coordinateRows = rows.filter(hasCoordinates);
+  const placedLabels = [];
+  const labelOffset = 1.05;
+  const directions = [
+    [0, 1],
+    [1, 1],
+    [1, 0],
+    [1, -1],
+    [0, -1],
+    [-1, -1],
+    [-1, 0],
+    [-1, 1],
+  ];
+
+  coordinateRows.forEach((row) => {
+    const nearbyRows = coordinateRows.filter((candidate) => candidate !== row && markerDistance(row, candidate) < 4.2);
+    const markerLatitude = Number(row.markerLatitude ?? row.latitude);
+    const markerLongitude = Number(row.markerLongitude ?? row.longitude);
+
+    if (!nearbyRows.length) {
+      row.labelLatitude = markerLatitude;
+      row.labelLongitude = ((markerLongitude + labelOffset + 540) % 360) - 180;
+      placedLabels.push(row);
+      return;
+    }
+
+    const candidates = directions.map(([latitudeDirection, longitudeDirection]) => {
+      const latitude = Math.max(-89.5, Math.min(89.5, markerLatitude + latitudeDirection * labelOffset));
+      const longitudeOffset = (longitudeDirection * labelOffset) / Math.max(0.25, Math.cos((markerLatitude * Math.PI) / 180));
+      const longitude = ((markerLongitude + longitudeOffset + 540) % 360) - 180;
+      return { latitude, longitude };
+    });
+
+    const bestCandidate = candidates.reduce((best, candidate) => {
+      const nearbyDistance = nearbyRows.reduce((minimum, other) => {
+        const distance = markerDistance(
+          { markerLatitude: candidate.latitude, markerLongitude: candidate.longitude },
+          other,
+        );
+        return Math.min(minimum, distance);
+      }, Infinity);
+      const placedDistance = placedLabels.reduce((minimum, other) => {
+        const distance = markerDistance(
+          { markerLatitude: candidate.latitude, markerLongitude: candidate.longitude },
+          other,
+        );
+        return Math.min(minimum, distance);
+      }, Infinity);
+      const score = Math.min(nearbyDistance, placedDistance);
+      return score > best.score ? { candidate, score } : best;
+    }, { candidate: candidates[0], score: -Infinity }).candidate;
+
+    row.labelLatitude = bestCandidate.latitude;
+    row.labelLongitude = bestCandidate.longitude;
+    placedLabels.push(row);
+  });
+
+  return rows;
+}
+
 function regionFor(row) {
   const country = (row.country || "").trim();
   return Object.entries(regionCountries).find(([, countries]) => countries.has(country))?.[0] || "Other";
@@ -231,7 +336,7 @@ function matchesVisibleFields(row) {
 }
 
 function normalizeRows(rows) {
-  return rows.map((row) => ({
+  const normalizedRows = rows.map((row) => ({
     ...row,
     year: Number(row.year),
     importance: Number(row.importance) || 1,
@@ -241,6 +346,8 @@ function normalizeRows(rows) {
     eventStartDate: parseDate(row.event_start),
     eventEndDate: parseDate(row.event_end),
   }));
+
+  return spreadOverlappingMarkers(normalizedRows);
 }
 
 function buildEvents(rows) {
@@ -346,9 +453,11 @@ function focusConference(row) {
 
 function refreshGlobeMarkers() {
   if (!state.globe) return;
+  const markerRows = state.conferences.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row) && matchesVisibleFields(row));
   state.globe
     .pointColor(markerColor)
-    .pointsData(state.conferences.filter((row) => hasCoordinates(row) && matchesAdvancedFilters(row) && matchesVisibleFields(row)));
+    .pointsData(markerRows)
+    .labelsData(state.showAcronyms ? markerRows : []);
 }
 
 function renderSelection(row) {
@@ -441,19 +550,28 @@ function renderGlobe(rows, countries) {
     .polygonStrokeColor(() => currentGlobeTheme().border)
     .polygonCapCurvatureResolution(0.45)
     .polygonsTransitionDuration(0)
-    .pointLat((row) => row.latitude)
-    .pointLng((row) => row.longitude)
-    .pointAltitude((row) => 0.018 + row.importance * 0.006)
-    .pointRadius(importanceRadius)
+    .labelsData(state.showAcronyms ? points : [])
+    .labelLat((row) => row.labelLatitude ?? row.markerLatitude ?? row.latitude)
+    .labelLng((row) => row.labelLongitude ?? row.markerLongitude ?? row.longitude)
+    .labelText((row) => row.title)
+    .labelColor(() => "#071a2b")
+    .labelAltitude(0.012)
+    .labelSize(0.48)
+    .labelResolution(2)
+    .labelIncludeDot(false)
+    .labelsTransitionDuration(0)
+    .pointLat((row) => row.markerLatitude ?? row.latitude)
+    .pointLng((row) => row.markerLongitude ?? row.longitude)
+    .pointAltitude(importanceAltitude)
+    .pointRadius(0.44)
     .pointColor(markerColor)
     .pointsMerge(false)
     .pointsData(points)
     .pointLabel(
       (row) => `
         <div class="marker-tooltip">
-          <strong>${row.title} ${row.year}</strong><br>
-          ${row.place}<br>
-          Importance ${row.importance}/10
+          <strong>${row.title}</strong>
+          <span>${row.year}</span>
         </div>
       `,
     )
@@ -654,6 +772,19 @@ function setupTheme() {
   themeToggleElement.addEventListener("click", () => setTheme(isDarkTheme() ? "light" : "dark"));
 }
 
+function setAcronymVisibility(isVisible) {
+  state.showAcronyms = isVisible;
+  acronymToggleElement.setAttribute("aria-pressed", String(isVisible));
+  acronymToggleElement.setAttribute("aria-label", `${isVisible ? "Hide" : "Show"} conference acronyms on the globe`);
+  acronymToggleElement.title = `${isVisible ? "Hide" : "Show"} conference acronyms on the globe`;
+  acronymToggleElement.classList.toggle("is-active", isVisible);
+  refreshGlobeMarkers();
+}
+
+function setupAcronymToggle() {
+  acronymToggleElement.addEventListener("click", () => setAcronymVisibility(!state.showAcronyms));
+}
+
 function setupFilters() {
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -787,6 +918,7 @@ function parseCsv(text) {
 
 async function init() {
   setupTheme();
+  setupAcronymToggle();
   setupFilters();
 
   try {
@@ -800,6 +932,9 @@ async function init() {
 
     state.conferences = rows;
     state.countries = countries;
+    const importanceValues = rows.map((row) => Number(row.importance)).filter(Number.isFinite);
+    state.importanceMin = Math.min(...importanceValues);
+    state.importanceMax = Math.max(...importanceValues);
     state.events = buildEvents(rows);
     populateAdvancedFilters(rows);
     renderHeaderStats(rows);

@@ -14,13 +14,18 @@
         <span class="brand-mark" aria-hidden="true">AI</span>
         <div class="header-copy">
           <div class="title-row">
-            <h1>AI Conference Globe</h1>
-            <span class="year-badge" aria-label="Conference years">2026–2027</span>
-            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
-              <svg class="theme-icon theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v2M12 19.5v2M4.58 4.58l1.42 1.42M18 18l1.42 1.42M2.5 12h2M19.5 12h2M4.58 19.42 6 18M18 6l1.42-1.42" /></svg>
-              <svg class="theme-icon theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" /></svg>
-              <span class="theme-toggle-label">Dark</span>
-            </button>
+            <h1>AI Conference Globe <span class="year-badge" aria-label="Conference years">2026–2027</span></h1>
+            <div class="header-actions">
+              <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+                <svg class="theme-icon theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v2M12 19.5v2M4.58 4.58l1.42 1.42M18 18l1.42 1.42M2.5 12h2M19.5 12h2M4.58 19.42 6 18M18 6l1.42-1.42" /></svg>
+                <svg class="theme-icon theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" /></svg>
+                <span class="theme-toggle-label">Dark</span>
+              </button>
+              <button id="acronym-toggle" class="acronym-toggle" type="button" aria-pressed="false" aria-label="Show conference acronyms on the globe" title="Show conference acronyms on the globe">
+                <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M5 18 9 6h2l4 12M6.5 14h7M17 9h2v9h-2" /></svg>
+                <span>Acronyms</span>
+              </button>
+            </div>
           </div>
           <p>Deadlines, dates and locations for major AI and machine-learning conferences.</p>
           <p id="header-stats" class="summary-strip" aria-label="Conference summary"></p>
