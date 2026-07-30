@@ -107,6 +107,20 @@ KNOWN_COORDS = {
     "boise": (43.6150, -116.2023, "Boise", "United States"),
     "jeju": (33.4996, 126.5312, "Jeju", "South Korea"),
     "copenhagen": (55.6761, 12.5683, "Copenhagen", "Denmark"),
+    "shenyang": (41.8026, 123.4279, "Shenyang", "China"),
+    "hong kong": (22.3193, 114.1694, "Hong Kong", "China"),
+    "athens": (37.9756, 23.7348, "Athens", "Greece"),
+    "hanoi": (21.0283, 105.8540, "Hanoi", "Vietnam"),
+}
+
+DISPLAY_LOCATION_NAMES = {
+    "沈阳市": "Shenyang",
+    "中国": "China",
+    "香港 Hong Kong": "Hong Kong",
+    "Αθήνα": "Athens",
+    "Ελλάς": "Greece",
+    "Thành phố Hà Nội": "Hanoi",
+    "Việt Nam": "Vietnam",
 }
 
 WIKIPEDIA_IMAGE_PAGES = {
@@ -122,13 +136,18 @@ WIKIPEDIA_IMAGE_PAGES = {
     "paphos": "Paphos",
     "vienna": "Vienna",
     "denver": "Denver",
-    "hong kong": "Hong Kong",
+    "hong kong": "Victoria Harbour",
     "dublin": "Dublin",
     "san diego": "San Diego",
     "seoul": "Seoul",
     "sydney": "Sydney",
     "melbourne": "Melbourne",
     "lisbon": "Lisbon",
+    "香港 hong kong": "Victoria Harbour",
+    "athens": "Athens",
+    "southampton": "Southampton",
+    "thành phố hà nội": "Hanoi",
+    "san josé": "San José, Costa Rica",
     "jeju": "Jeju Island",
     "bremen": "Bremen",
     "amsterdam": "Amsterdam",
@@ -143,6 +162,10 @@ WIKIPEDIA_IMAGE_PAGES = {
     "沈阳市": "Shenyang",
     "lancaster": "Lancaster, Lancashire",
     "copenhagen": "Copenhagen",
+}
+
+IMAGE_URL_OVERRIDES = {
+    "san josé": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/San_Jose_Costa_Rica_Skyline%2C_December_2023.png/960px-San_Jose_Costa_Rica_Skyline%2C_December_2023.png",
 }
 
 COLUMNS = [
@@ -375,6 +398,8 @@ def geocode_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     for row in df.to_dict(orient="records"):
         geo = known_geocode(row["place"]) or nominatim_geocode(row["place"], cache)
         row.update(geo or {"latitude": "", "longitude": "", "city": "", "country": ""})
+        row["city"] = DISPLAY_LOCATION_NAMES.get(row.get("city", ""), row.get("city", ""))
+        row["country"] = DISPLAY_LOCATION_NAMES.get(row.get("country", ""), row.get("country", ""))
         enriched.append(row)
     save_geocode_cache(cache)
     return pd.DataFrame(enriched)
@@ -418,6 +443,10 @@ def add_image_urls(df: pd.DataFrame) -> pd.DataFrame:
     cache = {}
 
     def stock_image_url(row: pd.Series) -> str:
+        for value in [row.get("city"), row.get("place")]:
+            key = image_query_value(value).lower()
+            if key in IMAGE_URL_OVERRIDES:
+                return IMAGE_URL_OVERRIDES[key]
         page = wikipedia_page_for(row)
         if page not in cache:
             cache[page] = wikipedia_thumbnail_url(page)

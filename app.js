@@ -382,6 +382,12 @@ function visibleMarkerRows(rows) {
   );
 }
 
+function labelRows(rows) {
+  // globe.gl stores an internal Three.js object on each data item. Labels and
+  // points are separate layers, so they must not share the same row objects.
+  return rows.map((row) => ({ ...row }));
+}
+
 function normalizeRows(rows) {
   const normalizedRows = rows.map((row) => ({
     ...row,
@@ -501,10 +507,14 @@ function focusConference(row) {
 function refreshGlobeMarkers() {
   if (!state.globe) return;
   const markerRows = visibleMarkerRows(state.conferences);
+  // Rebind both layers from an empty collection first. globe.gl diffs point
+  // objects by identity, and the same row objects are reused between filter
+  // changes; explicitly clearing the layers prevents stale cylinders or
+  // labels from remaining visible after a filter narrows the collection.
+  state.globe.pointColor(markerColor).pointsData([]).labelsData([]);
   state.globe
-    .pointColor(markerColor)
     .pointsData(markerRows)
-    .labelsData(state.showAcronyms ? markerRows : []);
+    .labelsData(state.showAcronyms ? labelRows(markerRows) : []);
 }
 
 function renderSelection(row) {
@@ -584,6 +594,7 @@ function applyGlobeTheme() {
 
 function renderGlobe(rows, countries) {
   const points = visibleMarkerRows(rows);
+  const labels = state.showAcronyms ? labelRows(points) : [];
   const globe = Globe()(globeElement)
     .backgroundColor("rgba(0,0,0,0)")
     .globeImageUrl(null)
@@ -597,7 +608,7 @@ function renderGlobe(rows, countries) {
     .polygonStrokeColor(() => currentGlobeTheme().border)
     .polygonCapCurvatureResolution(0.45)
     .polygonsTransitionDuration(0)
-    .labelsData(state.showAcronyms ? points : [])
+    .labelsData(labels)
     .labelLat((row) => row.labelLatitude ?? row.markerLatitude ?? row.latitude)
     .labelLng((row) => row.labelLongitude ?? row.markerLongitude ?? row.longitude)
     .labelText((row) => row.title)
