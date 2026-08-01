@@ -6,7 +6,9 @@ Interactive static visualization for 2026 and 2027 AI/ML conference locations, d
 
 The GitHub Pages deployment is available at:
 
-https://fabriziocosta.github.io/AIConferences/
+https://fc-explorations.github.io/AIConferences/
+
+Source repository: https://github.com/fc-explorations/AIConferences
 
 ## Run the visualization
 
